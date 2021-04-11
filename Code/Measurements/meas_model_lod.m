@@ -20,13 +20,13 @@
 %           observed landmarks) (difference in BF position
 %           of s/c state and landmark in km)
 
-function [los_vec] = meas_model_lod(sc_state, landmarks_obs, landmark_db)
+function [los_vec] = meas_model_lod(sc_state, landmark_obs, landmark_db)
 
 %pull observed landmarks from database
 l_pos = landmark_db(1:3,landmark_obs);
 
-for i = length(landmark_obs)
-    los_vec(i,:) = sc_state(1:3)-l_pos(i);
+for i = 1:length(landmark_obs)
+    los_vec(i,:) = sc_state(1:3)-l_pos(:,i);
 end
 
 
