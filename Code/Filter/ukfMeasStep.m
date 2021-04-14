@@ -1,7 +1,7 @@
 % Ken Kuppa, Dahlia Baker
 % ASEN 6519
 % Spring 2021
-% last edited - KK, 4/11/2021
+% last edited - KK, 4/14/2021
 
 % performs one UKF measurement step
 function [yhatm,Pkyy,Pkxy] = ukfMeasStep(xhatm,Pkm,params,landIdx)
@@ -13,19 +13,17 @@ Pksqrt = chol(Pkm,'lower');
 kai = [xhatm xhatm+params.gamma*Pksqrt xhatm-params.gamma*Pksqrt];
 
 % initialize arrays
-gammak = zeros(3,2*params.L+1);
-yhatm = zeros(3,1);
-Pkyy = zeros(3);
-Pkxy = zeros(params.L,3);
+gammak = zeros(params.r,2*params.L+1);
+yhatm = zeros(params.r,1);
+Pkyy = zeros(params.r);
+Pkxy = zeros(params.L,params.r);
 for ii = 1:2*params.L+1
     
     % predicted measurement
     % NOTE: add landmark DB to params, ensure state indices are correct
     % add multiple landmark observation
-    [los_vec] = meas_model_lod(kai(1:3,ii),landIdx, params.landmark_db);
+    [gammak(:,ii)] = meas_model_lod(kai(1:3,ii),landIdx, params.landmark_db);
     
-    
-    gammak(:,ii) =  normr(los_vec)';
     % compute mean observation
     if ii == 1
         yhatm = yhatm + params.W0mean*gammak(:,ii);      
@@ -45,4 +43,5 @@ for ii = 1:2*params.L+1
     end
 end
 % add measurement noise
-Pkyy = Pkyy + diag(params.measNoise);
+R = Rz(params.measNoise(3)*pi/180)*Ry(params.measNoise(2)*pi/180)*Rx(params.measNoise(1)*pi/180);
+Pkyy = Pkyy + R/10;

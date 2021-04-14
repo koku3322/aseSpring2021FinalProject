@@ -29,7 +29,8 @@ for i = 1:length(landmark_obs)
     los_vec(i,:) = sc_state(1:3)-l_pos(:,i);
 end
 
-
+% normalize 
+los_vec = normr(los_vec);
 end
 
 

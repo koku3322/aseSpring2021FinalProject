@@ -5,7 +5,7 @@
 
 % performs one UKF propagation step
 function [xhatm,Pkm] = ukfPropStep(X,P,tCurr,tPrev,params)
-
+dt = tCurr-tPrev;
 %% propagation
 % get square root of the covariance matrix
 Pksqrt = chol(P,'lower');
@@ -48,4 +48,4 @@ for ii = 1:2*params.L+1
     
 end
 % add process noise
-Pkm = Pkm + diag(params.procNoise);
+Pkm = Pkm + diag([zeros(3,1);params.procNoise*dt^2]);
