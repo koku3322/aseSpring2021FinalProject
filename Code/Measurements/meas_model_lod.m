@@ -1,7 +1,7 @@
 %Dahlia Baker and Ken Kuppa
 %ASEN 6519
 %Spring 2021
-%last edited - DB, 3/23/21
+%last edited - DB, 4/15/21
 
 %ASE Final Project - Measurement Model
 %Landmark Based OD and Gravity Estimation
@@ -25,6 +25,8 @@ function [los_vec] = meas_model_lod(sc_state, landmark_obs, landmark_db)
 %pull observed landmarks from database
 l_pos = landmark_db(1:3,landmark_obs);
 
+% initialize array
+los_vec = zeros(length(landmark_obs),3);
 for i = 1:length(landmark_obs)
     los_vec(i,:) = sc_state(1:3)-l_pos(:,i);
 end

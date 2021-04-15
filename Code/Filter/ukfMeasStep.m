@@ -44,4 +44,4 @@ for ii = 1:2*params.L+1
 end
 % add measurement noise
 R = Rz(params.measNoise(3)*pi/180)*Ry(params.measNoise(2)*pi/180)*Rx(params.measNoise(1)*pi/180);
-Pkyy = Pkyy + R/10;
+Pkyy = Pkyy + R;
