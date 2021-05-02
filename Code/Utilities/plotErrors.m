@@ -5,23 +5,23 @@
 
 % plots state errors with 2-sgima bounds. returns figure handle
 function h = plotErrors(t,stateErr,sig,updateApplied)
-h = figure;
+h(1) = figure;
 tiledlayout(3,2)
-sgtitle('State Estimation Errors')
+sgtitle({'State Estimation Errors:','Position & Velocity'})
 for idx = 1:3
     % position
     ax(idx) = nexttile;
-    plot(t,stateErr(:,idx),'k.-')
+    plot(t,stateErr(:,idx),'b.-')
     hold on
-    plot(t(~updateApplied),stateErr(~updateApplied,idx),'r.')
+    plot(t(~updateApplied),stateErr(~updateApplied,idx),'k.')
     plot(t,2*[-sig(:,idx),sig(:,idx)],'r')
     grid on, grid minor
     ylabel('Pos Error (m)')
     % velocity
     ax(idx+3) = nexttile;
-    plot(t,stateErr(:,idx+3),'k.-')
+    plot(t,stateErr(:,idx+3),'b.-')
     hold on
-    plot(t(~updateApplied),stateErr(~updateApplied,idx+3),'r.')
+    plot(t(~updateApplied),stateErr(~updateApplied,idx+3),'k.')
     plot(t,2*[-sig(:,idx+3),sig(:,idx+3)],'r')
     grid on, grid minor
     ylabel('Vel Error (m/s)')
@@ -31,3 +31,16 @@ xlabel(ax(3),'Time (sec)')
 xlabel(ax(6),'Time (sec)')
 linkaxes(ax(1:3))
 linkaxes(ax(4:6))
+
+% plot mu errors
+if size(stateErr,2)>6
+    h(2) = figure;
+    plot(t,stateErr(:,7),'b.-')
+    hold on
+    plot(t(~updateApplied),stateErr(~updateApplied,7),'k.')
+    plot(t,2*[-sig(:,7),sig(:,7)],'r')
+    grid on, grid minor
+    xlabel('Time (sec)')
+    ylabel('Error (m^3/s^2)')
+    title({'State Estimation Errors:','Gravitational Parameter (\mu)'})
+end

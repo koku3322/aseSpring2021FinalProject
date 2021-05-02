@@ -7,18 +7,18 @@ addpath('./Measurements/')
 addpath('./Utilities/')
 addpath('./Filter/')
 %% set parameters, settings, and initial conditions
-Rbody = 250;%6378;
+Rbody = 250;%6378e3;
 
 params.mu = 6.67430e-11*7.329e10;% m^3/s^2
 
 % true initial conditions
 a = 2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 30*pi/180;
 [r0,v0] = orbEl2rv(a,ecc,inc,w,ra,f,params.mu);
-X0 = [r0;v0];
+X0_true = [r0;v0;params.mu];
 
 T = 2*pi*sqrt(a^3/params.mu);
-
-params.L  = length(X0);
+z
+params.L  = length(X0_true);
 params.q  = 3;
 params.r  = 3;
 params.dt = 5;
@@ -29,7 +29,7 @@ azimuth = random('Uniform',0,pi,1,params.numLand);
 elevation = random('Uniform',-pi/2,pi/2,1,params.numLand);
 [x,y,z] = sph2cart(azimuth,elevation,Rbody);
 params.landmark_db = [x;y;z];
-params.P0 = diag([1000;1000;1000;1;1;1]);
+params.P0 = diag([100;100;100;1;1;1;1]);
 params.procNoise = 1e-12*[10;10;10];% m^2/s^4
 params.measNoise = 1/10*[1;1;1];% deg^2;
 
@@ -43,7 +43,7 @@ params.W0mean    = params.lambda/(params.L + params.lambda);
 params.W0cov     = params.W0mean + (1-params.alpha^2+params.beta);
 params.Wi        = 1/(2*(params.L + params.lambda));
 vProc = zeros(3,1);
-params.dynamics = @(t,X) twoBodyEom(t,X,params.mu,vProc);
+params.dynamics = @(t,X) twoBodyEom(t,X,vProc);
 %% sensor simulation/trajectory simulation
 generateTrajAndMeas();
 %% filter
@@ -68,7 +68,7 @@ for ii = 2:length(t)
     numObsLand = length(losMeas{ii,2});
     
     % check if any measurement exist
-    if ~isempty(losMeas{ii,2})
+    if ~isempty(landIdx)
         % loop through measurements
         for jj = 1:numObsLand
             %
@@ -97,3 +97,5 @@ for ii = 2:length(t)
 end
 %% plotting and post sim processing
 h = plotErrors(t,xEst-Xtruth,sig,updateApplied);
+saveas(h(1),'.\..\Results\posVelErrs_ukf','png')
+saveas(h(2),'.\..\Results\muErrs_ukf','png')

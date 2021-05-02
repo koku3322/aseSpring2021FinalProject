@@ -12,7 +12,7 @@ for ii = 2:length(t)
     Xtruth(ii,:) = Y(end,:);
     
     %% measurements
-    trueMeas= meas_model_lod(Xtruth(ii,:)',1:params.numLand,params.landmark_db);
+    trueMeas = meas_model_lod(Xtruth(ii,:)',1:params.numLand,params.landmark_db);
     % check which landmarks are visible
     visIdx = find((dot(normc(params.landmark_db),trueMeas'))>0);
         
@@ -34,4 +34,5 @@ for ii = 2:length(t)
     
     % assign index of observed landmarks
     losMeas{ii,2} = visIdx;
+    
 end

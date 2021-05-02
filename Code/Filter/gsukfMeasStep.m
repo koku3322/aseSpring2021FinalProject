@@ -4,7 +4,7 @@
 % last edited - KK, 4/14/2021
 
 % performs one UKF measurement step
-function [yhatm,Pkyy,Pkxy] = ukfMeasStep(xhatm,Pkm,params,landIdx)
+function [yhatm,Pkyy,Pkxy] = gsukfMeasStep(xhatm,Pkm,params,landIdx)
 
 
 %%% generate sigma points for the predicted measurement
@@ -32,6 +32,8 @@ for ii = 1:2*params.L+1
     end
     
 end
+% normalize
+yhatm = normc(yhatm);
 % construct covariance using propagated state and observation sigma
 for ii = 1:2*params.L+1
     if ii == 1
@@ -43,6 +45,4 @@ for ii = 1:2*params.L+1
     end
 end
 % add measurement noise
-R = Rz(params.measNoise(3)*pi/180)*Ry(params.measNoise(2)*pi/180)*Rx(params.measNoise(1)*pi/180);
-Pkyy = Pkyy + R;
-Pkyy = (Pkyy+Pkyy')/2;
+% R = Rz(params.measNoise(3)*(pi/180)^2)*Ry(params.measNoise(2)*(pi/180)^2)*Rx(params.measNoise(1)*(pi/180)^2);

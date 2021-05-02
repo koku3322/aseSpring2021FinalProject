@@ -21,7 +21,8 @@ for ii = 1:2*params.L+1
     
     % for each sigma point, call ode45
     % NOTE: params.mu should be replaced by the estimated mu
-    [~,Y] = ode45(params.dynamics,[tPrev,tCurr],kai(:,ii),params.mu);
+    vProc = zeros(3,1);
+    [~,Y] = ode45(@(t,X) twoBodyEom(t,X,vProc),[tPrev,tCurr],kai(:,ii),params.options);
     
     % assign final state to array
     kai(:,ii) = Y(end,:)';
@@ -48,4 +49,5 @@ for ii = 1:2*params.L+1
     
 end
 % add process noise
-Pkm = Pkm + diag([zeros(3,1);params.procNoise*dt^2]);
+Pkm = Pkm + diag([zeros(3,1);diag(params.procNoise(:,:,1))*dt^2;0]); 
+Pkm = (Pkm + Pkm')/2;
