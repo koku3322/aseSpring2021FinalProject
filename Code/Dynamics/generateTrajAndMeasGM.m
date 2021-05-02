@@ -7,7 +7,7 @@ Xtruth(1,:) = X0_true(:)';
 for ii = 2:length(t)
     
     %% trajectory
-    vProc = mvnrnd(zeros(size(params.procNoise)),diag(params.procNoise));vProc =vProc(:);
+    vProc = random(params.gmProc);vProc = vProc(:);
     [~,Y] = ode45(@(t,X) twoBodyEom(t,X,vProc),[t(ii-1),t(ii)],Xtruth(ii-1,:),params.options);
     Xtruth(ii,:) = Y(end,:);
     
@@ -20,7 +20,8 @@ for ii = 2:length(t)
         currMeas = zeros(3,length(visIdx));
         for jj = 1:length(visIdx)
             % generate random rotation matrix to perturb measurement
-            rpy = mvnrnd(zeros(3,1),diag(params.measNoise));% in degrees
+            rpy = random(params.gmMeas);
+%             rpy = mvnrnd(zeros(3,1),diag(params.measNoise));% in degrees
             Rerror = Rz(rpy(3)*pi/180)*Ry(rpy(2)*pi/180)*Rx(rpy(1)*pi/180);
             
             currMeas(:,jj) = Rerror*trueMeas(visIdx(jj),:)';
