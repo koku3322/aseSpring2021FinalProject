@@ -12,18 +12,26 @@ Rbody = 250;%6378e3;
 
 params.mu = 6.67430e-11*7.329e10;% m^3/s^2
 
+% imu errors
+wProc = 1/3*ones(3,1);
+mean1  = 1e-8*[1,1,1];
+mean2  = 2e-8*[1,1,1];
+mean3  = -1e-8*[1,1,1];
+sigma = diag(1e-10*[1;1;1]);
+params.imuBias = gmdistribution([mean1;mean2;mean3],sigma,wProc);
+
 % true initial conditions (3 mixands)
 a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 21*pi/180;
 [r0,v0] = orbEl2rv(a,ecc,inc,w,ra,f,params.mu);
-X0_true1 = [r0;v0;4.5];
+X0_true1 = [r0;v0;4.5;params.imuBias.mu(1,:)'];
 
 a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 20*pi/180;
 [r0,v0] = orbEl2rv(a,ecc,inc,w,ra,f,params.mu);
-X0_true2 = [r0;v0;5];
+X0_true2 = [r0;v0;5;params.imuBias.mu(2,:)'];
 
 a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 22*pi/180;
 [r0,v0] = orbEl2rv(a,ecc,inc,w,ra,f,params.mu);
-X0_true3 = [r0;v0;5.5];
+X0_true3 = [r0;v0;5.5;params.imuBias.mu(3,:)'];
 
 T = 2*pi*sqrt(a^3/params.mu);
 
@@ -38,19 +46,14 @@ azimuth = random('Uniform',0,pi,1,params.numLand);
 elevation = random('Uniform',-pi/2,pi/2,1,params.numLand);
 [x,y,z] = sph2cart(azimuth,elevation,Rbody);
 params.landmark_db = [x;y;z];
-params.P0 = diag([100;100;100;1;1;1;1]);
+params.P0 = zeros(params.L);
+params.P0(1:7,1:7) = diag([1000;1000;1000;1;1;1;1]);
+params.P0(8:10,8:10) = params.imuBias.Sigma;
 params.measNoise = [.1;.1;.1];% deg^2;
 
 % make gm prior
 wPrior = 1/3*ones(3,1);%[0.1;0.8;0.1];
 gmPrior = gmdistribution([X0_true1,X0_true2,X0_true3]',params.P0,wPrior);
-
-% make gm rpcess noise
-wProc = 1/3*ones(3,1);
-procNoise(:,:,1) = diag(1e-12*[10;10;10]);
-procNoise(:,:,2) = diag(1e-11*[10;10;10]);
-procNoise(:,:,3) = diag(1e-10*[10;10;10]);
-params.gmProc = gmdistribution(zeros(3,size(procNoise,3)),procNoise,wProc);
 
 % make gm meas noise
 wMeas = 1/3*ones(3,1);
@@ -97,7 +100,7 @@ wts = wPrior;
 for ii = 2:length(t)
     fprintf('t=% f',t(ii))
     %% GSUKF propagation step
-    [Xprior,Pprior] = gsukfPropStep(Xprior,Pprior,t(ii),t(ii-1),params);
+    [Xprior,Pprior] = gsukfPropStep(Xprior,Pprior,t(ii),t(ii-1),deltaV(:,ii),params);
     
     % pull out current measurement set from cell array
     losLand = losMeas{ii,1};
@@ -109,8 +112,8 @@ for ii = 2:length(t)
     
     %% check if any measurement exist
     if numObsLand ~= 0
-        muProp = cell(length(Xprior),length(params.gmMeas.mu));
-        Pprop  = cell(length(Pprior),length(params.gmMeas.mu));
+        muProp = repmat(Xprior,1,length(params.gmMeas.mu));
+        Pprop  = repmat(Pprior,1,length(params.gmMeas.mu));
         % updated weights
         wtsUpd = repmat(wts,1,length(params.gmMeas.mu));
         
@@ -125,7 +128,7 @@ for ii = 2:length(t)
                 for kk = 1:numObsLand
 
                     % UKF measurement step
-                    [yhatm,Pkyy,Pkxy] = gsukfMeasStep(muPrior_i,Pprior_i,params,landIdx(kk));
+                    [yhatm,Pkyy,Pkxy] = gsukfMeasStep(muProp{iPrior,iMeas},Pprop{iPrior,iMeas},params,landIdx(kk));
                     
                     measNoise = params.gmMeas.Sigma(:,:,iMeas);
                     R = Rz(measNoise(3)*pi/180)*Ry(measNoise(2)*pi/180)*Rx(measNoise(1)*pi/180);
@@ -140,10 +143,10 @@ for ii = 2:length(t)
                     K = Pkxy/Pkyy;
 
                     % state update
-                    muProp{iPrior,iMeas} = muPrior_i + K*(losLand(:,kk)-yhatm);
+                    muProp{iPrior,iMeas} = muProp{iPrior,iMeas} + K*(losLand(:,kk)-yhatm);
 
                     % covariance update
-                    P = Pprior_i - K*Pkyy*K';
+                    P = Pprop{iPrior,iMeas} - K*Pkyy*K';
                     Pprop{iPrior,iMeas} = (P + P')/2;
 
                     % update weights

@@ -4,10 +4,14 @@ t = 0:params.dt:T;
 losMeas = cell(length(t),2);
 Xtruth = zeros(length(t),params.L);
 Xtruth(1,:) = X0_true(:)';
+deltaVTrue = zeros(3,length(t));
+deltaV = zeros(3,length(t));
+X = zeros(size(Xtruth));
+X(1,:) = X0_true(:)'; 
 for ii = 2:length(t)
     
     %% trajectory
-    vProc = random(params.gmProc);vProc = vProc(:);
+    vProc = zeros(3,1);
     [~,Y] = ode45(@(t,X) twoBodyEom(t,X,vProc),[t(ii-1),t(ii)],Xtruth(ii-1,:),params.options);
     Xtruth(ii,:) = Y(end,:);
     
@@ -35,4 +39,21 @@ for ii = 2:length(t)
     % assign index of observed landmarks
     losMeas{ii,2} = visIdx;
     
+    
+    %% IMU data
+    
+    % truth accel data
+    deltaVTrue(:,ii) = Xtruth(ii,4:6)-Xtruth(ii-1,4:6);% actual difference in velocity
+    
+%     % add error
+    biasErr = random(params.imuBias);biasErr = biasErr(:);
+
+    deltaV(:,ii) = deltaVTrue(:,ii) + biasErr;
+        
+    vel = X(ii-1,4:6) + deltaV(:,ii)';
+    pos = X(ii-1,1:3) + vel*params.dt + 0.5*deltaV(:,ii)'*params.dt;
+    
+    
+    X(ii,1:7) = [pos,vel,params.mu];
+    X(ii,8:10) = sum(params.imuBias.mu.*wProc)';
 end

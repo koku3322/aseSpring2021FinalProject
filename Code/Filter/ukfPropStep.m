@@ -4,9 +4,15 @@
 % last edited - KK, 4/11/2021
 
 % performs one UKF propagation step
-function [xhatm,Pkm] = ukfPropStep(X,P,tCurr,tPrev,params)
+function [xhatm,Pkm] = ukfPropStep(X,P,tCurr,tPrev,dV,params)
 dt = tCurr-tPrev;
+%% IMU error compensation
+dVCorr = dV - X(8:10);
 %% propagation
+% % make augmented covariance matrix
+% Pkaug = zeros(params.L+length(params.imuBias.Sigma));
+% Pkaug(1:params.L,1:params.L) = P;
+% Pkaug(params.L+1:end,params.L+1:end) = params.imuBias.Sigma;
 % get square root of the covariance matrix
 Pksqrt = chol(P,'lower');
 
@@ -19,9 +25,11 @@ xhatm = zeros(params.L,1);
 Pkm = zeros(params.L);
 for ii = 1:2*params.L+1
     
-    % for each sigma point, call ode45
-    % NOTE: params.mu should be replaced by the estimated mu
-    vProc = zeros(3,1);
+    % for each sigma point, propagate state using compensated IMU Data
+    r = norm(kai(1:3,ii));
+    rhat = kai(1:3,ii)/r;
+    g = -kai(7,ii)/r^2*rhat;
+    vProc = g - dVCorr/dt;
     [~,Y] = ode45(@(t,X) twoBodyEom(t,X,vProc),[tPrev,tCurr],kai(:,ii),params.options);
     
     % assign final state to array
@@ -49,5 +57,10 @@ for ii = 1:2*params.L+1
     
 end
 % add process noise
-Pkm = Pkm + diag([zeros(3,1);diag(params.procNoise(:,:,1))*dt^2;0]); 
+Q = zeros(params.L);
+Q(1:3,1:3) = (eye(3)+params.imuBias.Sigma)*dt;
+Q(4:6,4:6) = (eye(3)+params.imuBias.Sigma);
+Q(8:10,8:10) = (eye(3)+params.imuBias.Sigma);
+
+Pkm = Pkm + Q;
 Pkm = (Pkm + Pkm')/2;

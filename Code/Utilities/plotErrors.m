@@ -32,8 +32,8 @@ xlabel(ax(6),'Time (sec)')
 linkaxes(ax(1:3))
 linkaxes(ax(4:6))
 
-% plot mu errors
 if size(stateErr,2)>6
+    % plot mu errors
     h(2) = figure;
     plot(t,stateErr(:,7),'b.-')
     hold on
@@ -43,4 +43,16 @@ if size(stateErr,2)>6
     xlabel('Time (sec)')
     ylabel('Error (m^3/s^2)')
     title({'State Estimation Errors:','Gravitational Parameter (\mu)'})
+    
+    % imu errors
+    h(3) = figure;
+    plot(t,stateErr(:,8:10),'b.-')
+    hold on
+    plot(t(~updateApplied),stateErr(~updateApplied,8:10),'k.')
+    plot(t,2*[-sig(:,8:10),sig(:,8:10)],'r')
+    grid on, grid minor
+    xlabel('Time (sec)')
+    ylabel('Error (m/s)')
+    title({'State Estimation Errors:','IMU Accel Bias'})
+    
 end
