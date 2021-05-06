@@ -20,18 +20,26 @@ mean3  = -1e-8*[1,1,1];
 sigma = diag(1e-10*[1;1;1]);
 params.imuBias = gmdistribution([mean1;mean2;mean3],sigma,wProc);
 
-% true initial conditions (3 mixands)
-a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 21*pi/180;
+% true initial conditions (5 mixands)
+a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 20*pi/180;
 [r0,v0] = orbEl2rv(a,ecc,inc,w,ra,f,params.mu);
 X0_true1 = [r0;v0;4.5;params.imuBias.mu(1,:)'];
 
-a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 20*pi/180;
+a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 25*pi/180;
 [r0,v0] = orbEl2rv(a,ecc,inc,w,ra,f,params.mu);
 X0_true2 = [r0;v0;5;params.imuBias.mu(2,:)'];
 
-a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 22*pi/180;
+a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 30*pi/180;
 [r0,v0] = orbEl2rv(a,ecc,inc,w,ra,f,params.mu);
 X0_true3 = [r0;v0;5.5;params.imuBias.mu(3,:)'];
+
+a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 35*pi/180;
+[r0,v0] = orbEl2rv(a,ecc,inc,w,ra,f,params.mu);
+X0_true4 = [r0;v0;4;params.imuBias.mu(3,:)'];
+
+a = 1.2*Rbody; ecc = 0; inc = 20*pi/180;w = 0; ra = 20*pi/180;f = 40*pi/180;
+[r0,v0] = orbEl2rv(a,ecc,inc,w,ra,f,params.mu);
+X0_true5 = [r0;v0;4;params.imuBias.mu(3,:)'];
 
 T = 2*pi*sqrt(a^3/params.mu);
 
@@ -40,6 +48,7 @@ params.q  = 3;
 params.r  = 3;
 params.dt = 5;
 params.options = odeset('RelTol',1e-8,'AbsTol',1e-8);
+
 % landmark database (one landmark per column)
 params.numLand = 50;
 azimuth = random('Uniform',0,pi,1,params.numLand);
@@ -52,8 +61,8 @@ params.P0(8:10,8:10) = params.imuBias.Sigma;
 params.measNoise = [.1;.1;.1];% deg^2;
 
 % make gm prior
-wPrior = 1/3*ones(3,1);%[0.1;0.8;0.1];
-gmPrior = gmdistribution([X0_true1,X0_true2,X0_true3]',params.P0,wPrior);
+wPrior = 1/3*ones(5,1);%[0.1;0.8;0.1];
+gmPrior = gmdistribution([X0_true1,X0_true2,X0_true3,X0_true4,X0_true5]',params.P0,wPrior);
 
 % make gm meas noise
 wMeas = 1/3*ones(3,1);
@@ -63,7 +72,9 @@ measNoise(:,:,3) = diag([0.5;0.5;0.5]);
 params.gmMeas = gmdistribution(zeros(3,size(measNoise,3)),measNoise,wMeas);
 
 % mixture compression
-params.Mdes = 5;
+params.Mdes = 9;
+params.compressionMethod = 'brutalTrunc';%'momentMatch';%
+params.nCompSkip = 1;
 
 % ukf parameters
 params.alpha     = 1e-4;
@@ -170,8 +181,6 @@ for ii = 2:length(t)
         wts = wtsUpd/sum(wtsUpd);
         
         
-    else
-        fprintf('No updates')
     end
     
     
@@ -191,9 +200,17 @@ for ii = 2:length(t)
     Phat = (Phat+Phat')/2;
     
     %% mixture compression
-    % brutal truncation
-    [wts,Xprior,Pprior] = brutalTrunc(wts,Xprior,Pprior,params.Mdes);
-
+    
+    switch params.compressionMethod
+        case 'momentMatch'% moment matching
+            Xprior = {xhat};
+            Pprior = {Phat};
+            wts = 1;
+        case 'brutalTrunc'% brutal truncation
+            if mod(ii,params.nCompSkip)==0
+                [wts,Xprior,Pprior] = brutalTrunc(wts,Xprior,Pprior,params.Mdes);
+            end
+    end
     %% compute filter errors
     xEst(ii,:) = xhat(:)';
     sig(ii,:) = sqrt(diag(Phat));
@@ -203,8 +220,18 @@ for ii = 2:length(t)
     fprintf('\n')
 end
 %% plotting and post sim processing
-h = plotErrors(t,xEst-Xtruth,sig,updateApplied);
-saveas(h(1),'.\..\Results\posVelErrs_gsf','png')
-if length(h)>1
-    saveas(h(2),'.\..\Results\muErrs_gsf','png')
+switch params.compressionMethod
+    case 'momentMatch'% moment matching
+        tag = [params.compressionMethod];
+    case 'brutalTrunc'% brutal truncation
+        tag = [params.compressionMethod,'_mdes',num2str(params.Mdes)];
 end
+h = plotErrors(t,xEst-Xtruth,sig,updateApplied);
+saveas(h(1),['.\..\Results\posVelErrs_gsf_',tag],'png')
+saveas(h(1),['.\..\Results\posVelErrs_gsf_',tag],'fig')
+if length(h)>1
+    saveas(h(2),['.\..\Results\muErrs_gsf_bt9',tag],'png')
+    saveas(h(2),['.\..\Results\muErrs_gsf_bt9',tag],'fig')
+end
+
+save(['.\..\Results\filterdata_',tag],'t','xEst','sig')

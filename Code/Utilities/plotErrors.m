@@ -5,7 +5,7 @@
 
 % plots state errors with 2-sgima bounds. returns figure handle
 function h = plotErrors(t,stateErr,sig,updateApplied)
-h(1) = figure;
+h(1) = figure(1);
 tiledlayout(3,2)
 sgtitle({'State Estimation Errors:','Position & Velocity'})
 for idx = 1:3
@@ -34,7 +34,7 @@ linkaxes(ax(4:6))
 
 if size(stateErr,2)>6
     % plot mu errors
-    h(2) = figure;
+    h(2) = figure(2);
     plot(t,stateErr(:,7),'b.-')
     hold on
     plot(t(~updateApplied),stateErr(~updateApplied,7),'k.')
@@ -45,7 +45,7 @@ if size(stateErr,2)>6
     title({'State Estimation Errors:','Gravitational Parameter (\mu)'})
     
     % imu errors
-    h(3) = figure;
+    h(3) = figure(3);
     plot(t,stateErr(:,8:10),'b.-')
     hold on
     plot(t(~updateApplied),stateErr(~updateApplied,8:10),'k.')

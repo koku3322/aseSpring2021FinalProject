@@ -5,7 +5,10 @@
 
 % performs mixture compression using brutal truncation
 function [wts,X,P] = brutalTrunc(wts,X,P,Mdes)
-
+if length(X)<=Mdes
+    fprintf('skipping compression\n');
+    return
+end
 [wts,idx]=maxk(wts,Mdes);
 
 % renormalize weights
