@@ -1,5 +1,5 @@
 % generate truth trajectory and measurements
-t = 0:params.dt:T;
+t = 0:params.dt:2*T;
 % initialize arrays
 losMeas = cell(length(t),2);
 Xtruth = zeros(length(t),params.L);

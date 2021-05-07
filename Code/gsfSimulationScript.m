@@ -72,7 +72,7 @@ measNoise(:,:,3) = diag([0.5;0.5;0.5]);
 params.gmMeas = gmdistribution(zeros(3,size(measNoise,3)),measNoise,wMeas);
 
 % mixture compression
-params.Mdes = 9;
+params.Mdes = 5;
 params.compressionMethod = 'brutalTrunc';%'momentMatch';%
 params.nCompSkip = 1;
 
@@ -147,7 +147,7 @@ for ii = 2:length(t)
                     Pkyy = (Pkyy+Pkyy')/2;
                     % skip measurement if non PSD
                     if min(eig(Pkyy)) < 0
-                        fprintf('skipping measurement % i',kk);
+%                         fprintf('skipping measurement % i',kk);
                         break
                     end
                     % kalman gain
@@ -230,8 +230,10 @@ h = plotErrors(t,xEst-Xtruth,sig,updateApplied);
 saveas(h(1),['.\..\Results\posVelErrs_gsf_',tag],'png')
 saveas(h(1),['.\..\Results\posVelErrs_gsf_',tag],'fig')
 if length(h)>1
-    saveas(h(2),['.\..\Results\muErrs_gsf_bt9',tag],'png')
-    saveas(h(2),['.\..\Results\muErrs_gsf_bt9',tag],'fig')
+    saveas(h(2),['.\..\Results\muErrs_gsf_',tag],'png')
+    saveas(h(2),['.\..\Results\muErrs_gsf_',tag],'fig')
+    saveas(h(3),['.\..\Results\imuErrs_gsf_',tag],'png')
+    saveas(h(3),['.\..\Results\imuErrs_gsf_',tag],'fig')
 end
 
 save(['.\..\Results\filterdata_',tag],'t','xEst','sig')
